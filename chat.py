@@ -23,6 +23,10 @@ help_message_admin = help_message_user + "-------------\r\n" \
 auth_user = {'admin': 'c09ccadebf4dba75c9b677b26ff7ed496e7c08c4152ff220cc0e9535cab84e03e7b07a4848fef4b9f08d2dd97148f18'
                       '96d1d862cae6f42e0ec5f8f731ccbe15f'}
 
+CURSOR_UP_ONE = "\x1b[1A"
+ERASE_LINE = "\x1b[2K"
+CURSOR_DOWN_ONE = "\x1b[1B"
+
 
 class Peer(object):
     def __init__(self, nickname, reader, writer):
@@ -36,8 +40,14 @@ class Peer(object):
 
 async def message_broadcast(peers, from_peer=None, message="", service=0):
     for peer in peers:
+        #peer.writer.write("\x1b[6n\r\n".encode())
+        #cursor_position = await peer.reader.readexactly(10)
         if service == 0:
-            text = "\r<<< %s :: %s\r\n>>> " % (from_peer, message)
+            text = "%s\r<<< %s :: %s :: %s\r\n>>> " % (CURSOR_UP_ONE, datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), from_peer,
+                                                     message)
+
+            #restore_cursor = ("\x1b[%s;%sf" % (cursor_position[3:5], cursor_position[6])).encode()
+            #peer.writer.write(restore_cursor)
         else:
             text = "\r%s\r\n>>> " % message
         peer.writer.write(text.encode())
@@ -102,8 +112,12 @@ async def main_loop(reader, writer):
         writer.write("\r>>> ".encode())
         data = await reader.readuntil()
         message = (data.strip()).decode()
+        writer.write((CURSOR_UP_ONE + ERASE_LINE).encode())
+        line = ("\r>>> %s :: %s :: %s\r\n" % (datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), nickname,
+                                              message)).encode()
+        writer.write(line)
         if message != "":
-            # service request
+            # service message
             if message[0] == "!":
                 if message == "!help":
                     writer.write(help_message_admin) if nickname == "admin" else writer.write(help_message_user)
