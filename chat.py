@@ -25,7 +25,6 @@ auth_user = {'admin': 'c09ccadebf4dba75c9b677b26ff7ed496e7c08c4152ff220cc0e9535c
 
 CURSOR_UP_ONE = "\x1b[1A"
 ERASE_LINE = "\x1b[2K"
-CURSOR_DOWN_ONE = "\x1b[1B"
 
 
 class Peer(object):
@@ -40,14 +39,9 @@ class Peer(object):
 
 async def message_broadcast(peers, from_peer=None, message="", service=0):
     for peer in peers:
-        #peer.writer.write("\x1b[6n\r\n".encode())
-        #cursor_position = await peer.reader.readexactly(10)
         if service == 0:
-            text = "%s\r<<< %s :: %s :: %s\r\n>>> " % (CURSOR_UP_ONE, datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), from_peer,
+            text = "\r<<< %s :: %s :: %s\r\n>>> " % (datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), from_peer,
                                                      message)
-
-            #restore_cursor = ("\x1b[%s;%sf" % (cursor_position[3:5], cursor_position[6])).encode()
-            #peer.writer.write(restore_cursor)
         else:
             text = "\r%s\r\n>>> " % message
         peer.writer.write(text.encode())
@@ -134,7 +128,7 @@ async def main_loop(reader, writer):
                         except IndexError:
                             await kick_peer(peer)
                 elif message == "!quit":
-                    writer.write("INFO: See you soon...Disconnecting".encode())
+                    writer.write("INFO: See you soon...Disconnecting\r\n".encode())
                     broadcast_to = [v for k, v in peers.items() if k != nickname]
                     await message_broadcast(broadcast_to, message="INFO: %s decided to leave the room" % nickname,
                                             service=1)
